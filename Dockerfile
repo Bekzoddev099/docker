@@ -1,8 +1,27 @@
-# Start by using a PHP image that already has PHP-FPM (FastCGI Process Manager) installed.
+# Start from the official PHP image with the required extensions
 FROM php:8.3-fpm
 
-# Copy our PHP files from our computer into the Docker container.
-COPY ./public /var/www/html
+# Install system dependencies and PHP extensions required for Laravel
+RUN apt-get update && apt-get install -y \
+    libpng-dev \
+    libjpeg-dev \
+    libfreetype6-dev \
+    libzip-dev \
+    unzip \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install gd zip pdo pdo_mysql
 
-# Set the directory where PHP will look for files to run.
-WORKDIR /var/www/html
+# Set the working directory inside the container
+WORKDIR /var/www
+
+# Copy the Laravel application files into the container
+COPY . /var/www
+
+# Install Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# Install Laravel dependencies
+RUN composer install
+
+# Set permissions for storage and bootstrap/cache
+RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
